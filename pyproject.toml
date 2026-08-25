@@ -1,0 +1,25 @@
+[project]
+name = "cursor-myagent-base"
+version = "0.1.0"
+description = "LangGraph 意图路由多 Agent：按领域调度行程/办公专家，支持 CLI 与 FastAPI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "langchain>=1.3.16",
+    "langchain-openai>=1.6.0",
+    "langgraph>=1.2.11",
+    "langgraph-checkpoint-postgres>=3.1.2",
+    "psycopg[binary]>=3.3.4",
+    "python-dotenv>=1.2.3",
+    "uvicorn>=0.52.4",
+]
+
+[project.scripts]
+cursor-myagent-base = "cursor_myagent_base:main"
+cursor-myagent-api = "cursor_myagent_base.api:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MyAgent 助手</title>
+    <link rel="stylesheet" href="/static/app.css?v=async3" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="rail">
+        <div class="brand">
+          <span class="mark" aria-hidden="true"></span>
+          <div>
+            <h1>MyAgent</h1>
+            <p>行程 · 办公 · 闲聊</p>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>API Token</span>
+          <input id="token" type="password" autocomplete="off" placeholder="填写 .env 里的 API_TOKEN" />
+        </label>
+        <label class="field">
+          <span>会话 ID</span>
+          <input id="thread" type="text" spellcheck="false" placeholder="web-local" />
+        </label>
+        <button type="button" class="ghost" id="connect">连接会话</button>
+        <button type="button" class="ghost" id="openContacts">通讯录</button>
+        <p class="hint" id="statusLine">未连接。Token 只存在本机浏览器。</p>
+
+        <section class="caps">
+          <h2>能帮你做什么</h2>
+          <ul>
+            <li>查今天 / 明天天气</li>
+            <li>规划驾车、公交、步行路线</li>
+            <li>给通讯录联系人发邮件</li>
+          </ul>
+          <p class="contacts" id="contactsHint">通讯录：连接后可点「通讯录」查看</p>
+        </section>
+
+        <a class="docs" href="/docs" target="_blank" rel="noopener">接口文档 /docs</a>
+      </aside>
+
+      <main class="stage">
+        <header class="top">
+          <div>
+            <strong id="threadLabel">web-local</strong>
+            <span class="pill" id="domainPill">待命</span>
+          </div>
+          <button type="button" class="text-btn" id="clearChat">清空本页记录</button>
+        </header>
+
+        <div class="log" id="log" role="log" aria-live="polite"></div>
+
+        <form class="composer" id="composer">
+          <textarea
+            id="message"
+            rows="2"
+            maxlength="4000"
+            placeholder="例如：帮我查北京明天的天气，高于 10 度就给雨帆发信…"
+          ></textarea>
+          <button type="submit" id="send" disabled>发送</button>
+        </form>
+      </main>
+    </div>
+
+    <div class="overlay" id="overlay" hidden>
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+        <p class="sheet-kicker">发送前确认</p>
+        <h2 id="sheetTitle">这封邮件即将发出</h2>
+        <dl class="mail">
+          <div>
+            <dt>收件人</dt>
+            <dd id="mailTo">—</dd>
+          </div>
+          <div>
+            <dt>邮箱</dt>
+            <dd id="mailEmail">—</dd>
+          </div>
+          <div>
+            <dt>主题</dt>
+            <dd id="mailSubject">—</dd>
+          </div>
+          <div class="wide">
+            <dt>正文</dt>
+            <dd id="mailBody">—</dd>
+          </div>
+        </dl>
+        <div class="sheet-actions">
+          <button type="button" class="ghost" id="cancelMail">取消</button>
+          <button type="button" class="primary" id="approveMail">确认发送</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="contactsOverlay" hidden>
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="contactsTitle">
+        <p class="sheet-kicker">Contacts</p>
+        <h2 id="contactsTitle">通讯录</h2>
+        <p class="contacts-lead" id="contactsEmpty">还没有联系人。请在项目根目录的 contacts.json 里登记称呼和邮箱。</p>
+        <ul class="contact-list" id="contactList"></ul>
+        <div class="sheet-actions">
+          <button type="button" class="ghost" id="closeContacts">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/static/app.js?v=async3"></script>
+  </body>
+</html>

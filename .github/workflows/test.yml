@@ -1,0 +1,57 @@
+name: tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DASHSCOPE_API_KEY: sk-ci-placeholder
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      API_TOKEN: test-ci-token
+      EMAIL_SKIP_CONFIRM: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: uv sync
+      - name: Contacts for tests
+        run: cp contacts.example.json contacts.json
+      - name: Run tests
+        run: |
+          uv run python tests/test_safety.py
+          uv run python tests/test_weather_geo.py
+          uv run python tests/test_amap.py
+          uv run python tests/test_domains.py
+          uv run python tests/test_clarify.py
+          uv run python tests/test_fallback.py
+          uv run python tests/test_email_idempotent.py
+          uv run python tests/test_email_claim.py
+          uv run python tests/test_guard_duplicate.py
+          uv run python tests/test_postgres_checkpoint.py
+          uv run python tests/test_api.py
+          uv run python tests/test_stream_events.py

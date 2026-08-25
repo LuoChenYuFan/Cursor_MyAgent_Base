@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+.vscode
+__pycache__
+*.py[oc]
+*.egg-info
+build
+dist
+.env
+contacts.json
+.email_receipts.json
+skill.py
+tests
