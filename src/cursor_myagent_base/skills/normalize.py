@@ -231,6 +231,74 @@ def infer_city_from_place(place: str) -> str:
     return ""
 
 
+_WEATHER_MARKERS = ("天气", "气温", "下雨", "降雨", "温度", "weather", "forecast")
+
+
+def last_human_content(messages) -> str:
+    """从消息列表里取最近一条用户原文。"""
+    for message in reversed(list(messages or [])):
+        if getattr(message, "type", "") != "human":
+            continue
+        content = getattr(message, "content", "")
+        if isinstance(content, str):
+            return content.strip()
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict) and item.get("type") == "text":
+                    parts.append(str(item.get("text", "")))
+            return "".join(parts).strip()
+    return ""
+
+
+def looks_like_weather_query(text: str) -> bool:
+    compact = normalize_text(text).replace(" ", "")
+    return any(marker in compact for marker in _WEATHER_MARKERS)
+
+
+def infer_when_from_text(text: str) -> str:
+    """从用户原句抽出 today/tomorrow；没提则空串。"""
+    compact = normalize_text(text)
+    if any(token in compact for token in ("明天", "明日", "tomorrow")):
+        return "tomorrow"
+    if any(token in compact for token in ("今天", "今日", "today")):
+        return "today"
+    return ""
+
+
+def infer_weather_city_from_text(text: str) -> str:
+    """查天气问句里抽出城市。优先取「天气」附近的地名，避免和后面的路线城市混用。"""
+    raw = (text or "").strip()
+    if not raw or not looks_like_weather_query(raw):
+        return ""
+    compact = normalize_text(raw).replace(" ", "").replace("'", "")
+    marker_pos = -1
+    marker_len = 0
+    for marker in _WEATHER_MARKERS:
+        key = normalize_text(marker).replace(" ", "").replace("'", "")
+        idx = compact.find(key)
+        if idx >= 0:
+            marker_pos = idx
+            marker_len = len(key)
+            break
+    if marker_pos >= 0:
+        before = compact[max(0, marker_pos - 16) : marker_pos]
+        after = compact[marker_pos + marker_len : marker_pos + marker_len + 16]
+        found = infer_city_from_place(before) or infer_city_from_place(after)
+        if found:
+            return found
+    return infer_city_from_place(raw)
+
+
+def is_city_clarify_question(question: str) -> bool:
+    text = (question or "").strip()
+    if not text:
+        return False
+    return "哪座城市" in text or ("城市" in text and "天气" in text)
+
+
 def city_hint_for_route(origin: str, destination: str, leaked_city: str = "") -> str:
     """路线规划的城市只看起终点，不沿用前面天气问句里的城市。"""
     for place in (origin, destination):

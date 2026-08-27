@@ -36,6 +36,10 @@ from cursor_myagent_base.skills.normalize import (
     as_question,
     canonical_mode,
     canonical_when,
+    infer_city_from_place,
+    infer_weather_city_from_text,
+    is_city_clarify_question,
+    last_human_content,
     resolve_run_city,
     normalize_text,
 )
@@ -53,6 +57,16 @@ _DEFERRED_HINT = (
     "也不要告诉用户系统无法发信或无法使用该 Skill。"
 )
 _DUP_LOAD_TEXT = "Skill「{key}」的说明书已经加载过，请直接调用 run_skill，不要再次 load_skill。"
+
+
+def _weather_city_from_state(state: dict) -> str:
+    explicit = str(state.get("city") or "").strip()
+    if explicit:
+        return explicit
+    user_text = last_human_content(state.get("messages") or [])
+    return infer_weather_city_from_text(user_text) or (
+        infer_city_from_place(user_text) if user_text and len(user_text) <= 12 else ""
+    )
 
 
 def _guard_email(to_value: str, subject_value: str, body_value: str) -> str | None:
@@ -148,6 +162,24 @@ def ask_user(question: str, runtime: ToolRuntime) -> Command:
     """
     state = runtime.state if isinstance(runtime.state, dict) else {}
     text = as_question(question) or "请再补充一下您的具体需求？"
+    known_city = _weather_city_from_state(state)
+    if known_city and is_city_clarify_question(text):
+        count = int(state.get("skill_call_count") or 0) + 1
+        _log_tool(count, "ask_user", f"skip-city-clarify city={known_city}", False)
+        hint = (
+            f"城市已确定为「{known_city}」。不要问用户哪座城市。"
+            f"请立刻 run_skill(name=\"weather\", city=\"{known_city}\")。"
+        )
+        return Command(
+            update={
+                "messages": [_tool_message(runtime, "ask_user", hint)],
+                "skill_call_count": 1,
+                "city": known_city,
+                "pending_clarify": False,
+                "needs_clarify": False,
+                "last_tool": "ask_user",
+            }
+        )
     count = int(state.get("skill_call_count") or 0) + 1
     _log_tool(count, "ask_user", f"question={text}", False)
     return Command(
@@ -281,6 +313,8 @@ def run_skill(
         destination=destination_value,
         state_city=str(state.get("city") or ""),
     )
+    if skill_name == "weather" and not city_value:
+        city_value = _weather_city_from_state(state)
     count = int(state.get("skill_call_count") or 0) + 1
     results = dict(state.get("run_results") or {})
 

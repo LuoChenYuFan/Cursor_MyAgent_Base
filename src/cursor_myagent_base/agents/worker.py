@@ -12,6 +12,12 @@ from cursor_myagent_base.skills.guard import (
     pre_skill_model,
 )
 from cursor_myagent_base.skills.loader import format_catalog
+from cursor_myagent_base.skills.normalize import (
+    infer_city_from_place,
+    infer_weather_city_from_text,
+    infer_when_from_text,
+    last_human_content,
+)
 from cursor_myagent_base.skills.tools import ask_user, load_skill, run_skill
 from cursor_myagent_base.state import AgentState
 
@@ -21,7 +27,7 @@ SHARED_SYSTEM = """你是{title}领域专家，只能通过本领域 Skill 完�
 禁止调用目录以外的 Skill；调用也会被系统拒绝。
 
 标准流程（渐进披露）：
-1. 关键信息缺失或地点/收件人含糊时，先 ask_user 问一个问题，然后结束本轮。禁止猜测，禁止先 load_skill
+1. 关键信息缺失或地点/收件人含糊时，先 ask_user 问一个问题，然后结束本轮。禁止猜测，禁止先 load_skill。用户原句或提示里已有明确城市时，不算缺失，禁止再问城市
 2. 信息足够时，选择本领域需要的 Skill；本领域内有多个步骤就按顺序调用
 3. 每个 Skill 都先 load_skill(name) 再 run_skill
 4. 用简洁中文汇总结果；脚本报错则如实转述，必要时再 ask_user
@@ -33,7 +39,7 @@ SHARED_SYSTEM = """你是{title}领域专家，只能通过本领域 Skill 完�
 工具返回 [MISSING_CITY] [MISSING_TO] [MISSING_ORIGIN] [MISSING_DESTINATION] [INVALID_MODE] [PLACE_NOT_FOUND] [AMAP_ERROR] [FORBIDDEN_RECIPIENT] [INJECTION_BLOCKED] [EMAIL_CANCELLED] 时：不要重试，把缺的信息变成一句反问后结束。禁止编造这些错误码。
 工具返回 [DEFERRED_SKILL] 时：这是领域交接，不是失败。继续完成本领域步骤，禁止告诉用户无法发信或无法使用该 Skill。
 工具返回 [FORBIDDEN_SKILL] 且拒绝的是本领域目录里的 Skill 时才结束；若拒绝的是其他领域 Skill，当作 [DEFERRED_SKILL] 处理。
-ask_user 之后用同一问句作为对用户的最终回复，不要再调工具。
+ask_user 之后用同一问句作为对用户的最终回复，不要再调工具。若 ask_user 返回「城市已确定」，不要问用户，立刻 run_skill。
 
 如果目录里没有合适的 Skill，如实告知用户，不要假装已经查询。
 不要闲聊。"""
@@ -70,6 +76,14 @@ def make_domain_prompt(domain: str, extra: str):
         when = (state.get("when") or "").strip()
         origin = (state.get("origin") or "").strip()
         destination = (state.get("destination") or "").strip()
+        user_text = last_human_content(state.get("messages") or [])
+        if domain == "trip":
+            if not city:
+                city = infer_weather_city_from_text(user_text) or (
+                    infer_city_from_place(user_text) if user_text and len(user_text) <= 12 else ""
+                )
+            if not when:
+                when = infer_when_from_text(user_text)
         if city:
             hints.append(f"天气地点（仅用于 weather，不要传给 amap）：{city}")
         if origin:

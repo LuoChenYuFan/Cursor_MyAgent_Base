@@ -131,7 +131,7 @@ docker compose up -d --build
 
 打开 `http://127.0.0.1:8000`。日志：`docker compose logs -f api`。停止：`docker compose down`（加 `-v` 会删掉数据库卷，会话会丢）。
 
-ECS：`git clone` 仓库，在服务器上放好 `.env` 和 `contacts.json`，同样 `docker compose up -d --build`。安全组放行 8000（或前面加 Nginx 只开 80/443）。Postgres 只在 Compose 内部网络给 API 用，不映射到主机 5432，以免和本机 PostgreSQL 抢端口。
+ECS：`git clone` 仓库，在服务器上放好 `.env` 和 `contacts.json`，同样 `docker compose up -d --build`。若 8000 已被占用，在 ECS 的 `.env` 设 `API_PUBLISH_PORT=9876`，安全组放行 **9876**。Postgres 只在 Compose 内部网络给 API 用，不映射到主机 5432，以免和本机 PostgreSQL 抢端口。
 
 ## 测试
 

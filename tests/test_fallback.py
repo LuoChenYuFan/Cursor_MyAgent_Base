@@ -38,6 +38,24 @@ def test_unknown_skill_route_sets_fallback() -> None:
     print("通过：不确定领域时走系统兜底，不猜两个专家")
 
 
+def test_intent_backfills_city_from_user_text() -> None:
+    decision = RouteDecision(
+        intent="skill",
+        domains=["trip"],
+        skill_name="weather",
+        city=None,
+        needs_clarify=True,
+        clarify_question="请问您要查哪座城市的天气？",
+        reason="漏填城市",
+    )
+    out = _intent_success(decision, user_text="帮我查询北京明天的天气")
+    assert out["city"] == "北京"
+    assert out["when"] == "tomorrow"
+    assert out["needs_clarify"] is False
+    assert not out["clarify_question"]
+    print("通过：用户已说城市时不会再反问")
+
+
 def test_intent_failure_sets_llm_error() -> None:
     out = _intent_failed(RuntimeError("timeout"))
     assert out["fallback_reason"] == "llm_error"
@@ -74,6 +92,7 @@ if __name__ == "__main__":
     test_internal_handover_is_detected()
     test_fallback_node_does_not_call_llm()
     test_unknown_skill_route_sets_fallback()
+    test_intent_backfills_city_from_user_text()
     test_intent_failure_sets_llm_error()
     test_compact_adds_fallback_when_no_reply()
     test_compact_keeps_real_reply()

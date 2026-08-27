@@ -30,7 +30,7 @@ services:
       - ./contacts.json:/app/contacts.json:ro
       - email_receipts:/app/data
     ports:
-      - "8000:8000"
+      - "${API_PUBLISH_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy

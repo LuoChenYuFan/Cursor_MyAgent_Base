@@ -1,8 +1,15 @@
+from langchain_core.messages import HumanMessage
+
 from cursor_myagent_base.skills.normalize import (
     city_country,
     city_geocode_query,
     city_hint_for_route,
     infer_city_from_place,
+    infer_weather_city_from_text,
+    infer_when_from_text,
+    is_city_clarify_question,
+    last_human_content,
+    looks_like_weather_query,
     pick_geo_place,
     resolve_run_city,
 )
@@ -92,10 +99,26 @@ def test_resolve_run_city_keeps_two_clauses_apart() -> None:
     print("通过：天气城市不会污染无关的路线调用")
 
 
+def test_infer_weather_city_from_user_utterance() -> None:
+    assert looks_like_weather_query("帮我查询北京明天的天气")
+    assert infer_weather_city_from_text("帮我查询北京明天的天气") == "北京"
+    assert infer_when_from_text("帮我查询北京明天的天气") == "tomorrow"
+    assert infer_weather_city_from_text("查北京天气然后从上海到杭州") == "北京"
+    assert infer_weather_city_from_text("从上海到北京怎么走") == ""
+    assert infer_city_from_place("那上海呢") == "上海"
+    assert is_city_clarify_question("请问您要查哪座城市的天气？")
+    assert not is_city_clarify_question("请问从哪到哪？")
+    assert last_human_content([HumanMessage(content="帮我查询北京明天的天气")]) == (
+        "帮我查询北京明天的天气"
+    )
+    print("通过：天气问句能从原文抽出城市，不会和路线城市混用")
+
+
 if __name__ == "__main__":
     test_tianjin_geocode_uses_china()
     test_hong_kong_uses_hk()
     test_pick_china_over_japan_amatsu()
     test_route_city_does_not_reuse_weather_city()
     test_resolve_run_city_keeps_two_clauses_apart()
+    test_infer_weather_city_from_user_utterance()
     print("全部通过")
